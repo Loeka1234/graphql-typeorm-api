@@ -1,26 +1,27 @@
 import {
   Resolver,
-  Query,
   Mutation,
-  InputType,
   Field,
   Arg,
   ObjectType,
+  Ctx,
+  Query,
 } from "type-graphql";
 import { User } from "../entities/User";
 import argon2 from "argon2";
+import { MyContext } from "src/types";
 
-@InputType()
-class RegisterInput {
-  @Field()
-  username: string;
+// @InputType()
+// class RegisterInput {
+//   @Field()
+//   username: string;
 
-  @Field()
-  password: string;
+//   @Field()
+//   password: string;
 
-  @Field()
-  email: string;
-}
+//   @Field()
+//   email: string;
+// }
 
 @ObjectType()
 class FieldError {
@@ -42,11 +43,22 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+  @Query(() => User, { nullable: true })
+  async me(@Ctx() { req }: MyContext) {
+    if (!req.session.userId) {
+      return null;
+    }
+
+    const user = await User.findOne({ id: req.session.userId });
+    return user;
+  }
+
   @Mutation(() => UserResponse)
   async register(
     @Arg("username") username: string,
     @Arg("password") password: string,
-    @Arg("email") email: string
+    @Arg("email") email: string,
+    @Ctx() {req}: MyContext
   ): Promise<UserResponse> {
     if (username.length < 5)
       return {
@@ -100,6 +112,8 @@ export class UserResolver {
       password: hashedPassword,
     }).save();
 
+    req.session.userId = user.id;
+
     return {
       user,
     };
@@ -108,7 +122,8 @@ export class UserResolver {
   @Mutation(() => UserResponse)
   async login(
     @Arg("username") username: string,
-    @Arg("password") password: string
+    @Arg("password") password: string,
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse | undefined> {
     const user = await User.findOne({
       username: username.toLowerCase(),
@@ -131,6 +146,8 @@ export class UserResolver {
           message: "incorrect password",
         },
       };
+
+    req.session.userId = user.id;
 
     return {
       user,

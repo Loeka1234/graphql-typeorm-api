@@ -1,5 +1,6 @@
-import { Resolver, Mutation, Arg, Query, Int } from "type-graphql";
+import { Resolver, Mutation, Arg, Query, Int, UseMiddleware } from "type-graphql";
 import { Event } from "../entities/Event";
+import { isAuth } from "../middleware/isAuth";
 
 @Resolver()
 export class EventResolver {

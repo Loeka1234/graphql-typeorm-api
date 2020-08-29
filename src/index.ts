@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { createConnection } from "typeorm";
-import { __production__ } from "./constants";
+import { __production__, COOKIE_NAME } from "./constants";
 import path from "path";
 import { User } from "./entities/User";
 import express from "express";
@@ -9,6 +9,10 @@ import { buildSchema } from "type-graphql";
 import { UserResolver } from "./resolvers/user";
 import { Event } from "./entities/Event";
 import { EventResolver } from "./resolvers/event";
+import { MyContext} from "./types";
+import redis from "redis";
+import session from "express-session";
+import connectRedis from "connect-redis";
 
 const main = async () => {
   const conn = await createConnection({
@@ -24,12 +28,34 @@ const main = async () => {
 
   const app = express();
 
+  const RedisStore = connectRedis(session);
+  const redisClient = redis.createClient();
+
+  app.use(
+    session({
+      name: COOKIE_NAME,
+      store: new RedisStore({
+        client: redisClient,
+        disableTouch: true,
+      }),
+      cookie: {
+        maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
+        httpOnly: true,
+        secure: __production__,
+        sameSite: "lax",
+      },
+      secret: "adjaopdjapdjoajpjadppojadjajdop",
+      saveUninitialized: false,
+      resave: false,
+    })
+  );
+
   const apolloServer = new ApolloServer({
     schema: await buildSchema({
       resolvers: [UserResolver, EventResolver],
       validate: false,
     }),
-    context: () => ({ })
+    context: ({ req, res }) => ({ req, res } as MyContext),
   });
 
   apolloServer.applyMiddleware({ app });
