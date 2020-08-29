@@ -6,6 +6,8 @@ import {
   ObjectType,
   Ctx,
   Query,
+  FieldResolver,
+  Root,
 } from "type-graphql";
 import { User } from "../entities/User";
 import argon2 from "argon2";
@@ -41,8 +43,14 @@ class UserResponse {
   user?: User;
 }
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
+  @FieldResolver()
+  email(@Root() user: User, @Ctx() { req }: MyContext) {
+    if (req.session.userId === user.id) return user.email;
+    else return "";
+  }
+
   @Query(() => User, { nullable: true })
   async me(@Ctx() { req }: MyContext) {
     if (!req.session.userId) {
@@ -58,7 +66,7 @@ export class UserResolver {
     @Arg("username") username: string,
     @Arg("password") password: string,
     @Arg("email") email: string,
-    @Ctx() {req}: MyContext
+    @Ctx() { req }: MyContext
   ): Promise<UserResponse> {
     if (username.length < 5)
       return {

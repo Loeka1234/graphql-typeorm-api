@@ -5,8 +5,10 @@ import {
   Entity,
   CreateDateColumn,
   UpdateDateColumn,
+  OneToMany,
 } from "typeorm";
 import { Field, ObjectType, Int } from "type-graphql";
+import { Event } from "./Event";
 
 @ObjectType()
 @Entity()
@@ -25,6 +27,9 @@ export class User extends BaseEntity {
 
   @Column()
   password!: string;
+
+  @OneToMany(() => Event, event => event.creator)
+  events: Event[];
 
   @Field(() => String)
   @CreateDateColumn()

@@ -13,9 +13,10 @@ import { MyContext} from "./types";
 import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
+import { authChecker } from "./middleware/authChecker";
 
 const main = async () => {
-  const conn = await createConnection({
+  await createConnection({
     type: "postgres",
     username: "postgres",
     password: "postgres",
@@ -54,6 +55,7 @@ const main = async () => {
     schema: await buildSchema({
       resolvers: [UserResolver, EventResolver],
       validate: false,
+      authChecker: authChecker,
     }),
     context: ({ req, res }) => ({ req, res } as MyContext),
   });
