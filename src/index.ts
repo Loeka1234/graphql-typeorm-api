@@ -9,11 +9,12 @@ import { buildSchema } from "type-graphql";
 import { UserResolver } from "./resolvers/user";
 import { Event } from "./entities/Event";
 import { EventResolver } from "./resolvers/event";
-import { MyContext} from "./types";
+import { MyContext } from "./types";
 import redis from "redis";
 import session from "express-session";
 import connectRedis from "connect-redis";
 import { authChecker } from "./middleware/authChecker";
+import cors from "cors";
 
 const main = async () => {
   await createConnection({
@@ -31,6 +32,13 @@ const main = async () => {
 
   const RedisStore = connectRedis(session);
   const redisClient = redis.createClient();
+
+  app.use(
+    cors({
+      credentials: true,
+      origin: "http://localhost:3000",
+    })
+  );
 
   app.use(
     session({
@@ -60,7 +68,7 @@ const main = async () => {
     context: ({ req, res }) => ({ req, res } as MyContext),
   });
 
-  apolloServer.applyMiddleware({ app });
+  apolloServer.applyMiddleware({ app, cors: false });
 
   app.get("/", (_, res) => {
     res.send("Express server working.");
