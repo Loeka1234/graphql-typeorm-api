@@ -1,4 +1,5 @@
 import "reflect-metadata";
+import dotenv from "dotenv-safe";
 import { createConnection } from "typeorm";
 import { __production__, COOKIE_NAME } from "./constants";
 import path from "path";
@@ -15,6 +16,8 @@ import session from "express-session";
 import connectRedis from "connect-redis";
 import { authChecker } from "./middleware/authChecker";
 import cors from "cors";
+
+dotenv.config();
 
 const main = async () => {
   await createConnection({
@@ -65,7 +68,7 @@ const main = async () => {
       validate: false,
       authChecker: authChecker,
     }),
-    context: ({ req, res }) => ({ req, res } as MyContext),
+    context: ({ req, res }) => ({ req, res, redis: redisClient } as MyContext),
   });
 
   apolloServer.applyMiddleware({ app, cors: false });

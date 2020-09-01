@@ -12,7 +12,9 @@ import {
 import { User } from "../entities/User";
 import argon2 from "argon2";
 import { MyContext } from "src/types";
-import { COOKIE_NAME } from "../constants";
+import { COOKIE_NAME, FORGOT_PASSWORD_PREFIX } from "../constants";
+import { sendMail } from "../utils/sendMail";
+import { v4 } from "uuid";
 
 // @InputType()
 // class RegisterInput {
@@ -177,5 +179,91 @@ export class UserResolver {
 				resolve(true);
 			})
 		);
+	}
+
+	@Mutation(() => Boolean)
+	async forgotPassword(
+		@Arg("email") email: string,
+		@Ctx() { redis }: MyContext
+	) {
+		const user = await User.findOne({ where: { email } });
+		if (!user) {
+			return true;
+		}
+
+		const token = v4();
+
+		await redis.set(
+			FORGOT_PASSWORD_PREFIX + token,
+			user.id.toString(),
+			"EX",
+			1000 * 60 * 60 * 24
+		);
+
+		await sendMail(
+			email,
+			`<a href="http://localhost:3000/change-password?token=${token}">reset password</a>`
+		);
+
+		return true;
+	}
+
+	@Mutation(() => UserResponse)
+	async changePassword(
+		@Arg("token") token: string,
+		@Arg("newPassword") newPassword: string,
+		@Ctx() { redis, req }: MyContext
+	): Promise<UserResponse> {
+		if (
+			!newPassword.match(
+				/^(?=.*[0-9]+.*)(?=.*[a-zA-Z]+.*)[0-9a-zA-Z]{6,}$/
+			)
+		)
+			return {
+				error: {
+					field: "newPassword",
+					message:
+						"must contain at least one letter, at least one number, and be longer than six charaters",
+				},
+			};
+
+		const key = FORGOT_PASSWORD_PREFIX + token;
+		let userId: string | null | undefined;
+		await new Promise(resolve => {
+			redis.get(key, (_, value) => {
+				userId = value;
+				resolve(true);
+			});
+		});
+
+		if (!userId)
+			return {
+				error: {
+					field: "token",
+					message: "token expired",
+				},
+			};
+
+		const userIdNum = parseInt(userId);
+		const user = await User.findOne(userIdNum);
+
+		if (!user)
+			return {
+				error: {
+					field: "token",
+					message: "user no longer exists",
+				},
+			};
+
+		await User.update(
+			{ id: userIdNum },
+			{ password: await argon2.hash(newPassword) }
+		);
+
+		await redis.del(key);
+
+		req.session.userId = user.id;
+
+		return { user };
 	}
 }
