@@ -6,29 +6,59 @@ import {
   Int,
   Ctx,
   Authorized,
+  ObjectType,
+  Field,
 } from "type-graphql";
 import { Event } from "../entities/Event";
 import { MyContext } from "src/types";
+import { User } from "../entities/User";
+import { FieldError } from "../utils/FieldError";
+
+@ObjectType()
+class EventResponse {
+  @Field(() => FieldError, { nullable: true })
+  error?: FieldError;
+
+  @Field(() => Event, { nullable: true })
+  event?: Event;
+}
 
 @Resolver()
 export class EventResolver {
-  @Mutation(() => Event)
+  @Mutation(() => EventResponse)
   @Authorized()
   async createEvent(
     @Arg("title") title: string,
-    @Arg("description") description: string,
+    @Arg("description", () => String, { nullable: true }) description: string,
     @Ctx() { req }: MyContext
-  ): Promise<Event> {
-    return Event.create({
+  ): Promise<EventResponse> {
+    if (!title || title.length < 5)
+      return {
+        error: {
+          field: "title",
+          message: "title should have a minimul length of 4",
+        },
+      };
+
+    const event = await Event.create({
       title,
       description,
       creatorId: req.session.userId,
     }).save();
+    
+    return {
+      event,
+    };
   }
 
   @Query(() => [Event])
-  events(): Promise<Event[]> {
-    return Event.find({ relations: ["creator"] });
+  @Authorized()
+  async events(@Ctx() { req }: MyContext): Promise<Event[]> {
+    const user = await User.findOne({ id: req.session.userId });
+
+    return Event.find({
+      where: { creatorId: user?.id },
+    });
   }
 
   @Query(() => Event, { nullable: true })

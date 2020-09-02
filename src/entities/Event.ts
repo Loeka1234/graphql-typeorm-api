@@ -1,4 +1,10 @@
-import { Entity, PrimaryGeneratedColumn, Column, BaseEntity, ManyToOne } from "typeorm";
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  BaseEntity,
+  ManyToOne,
+} from "typeorm";
 import { ObjectType, Field, Int } from "type-graphql";
 import { User } from "./User";
 
@@ -13,9 +19,9 @@ export class Event extends BaseEntity {
   @Column()
   title: string;
 
-  @Field()
-  @Column({ type: "text" })
-  description: string;
+  @Field({ nullable: true })
+  @Column("text", { nullable: true })
+  description?: string;
 
   @Field()
   @Column()

@@ -15,6 +15,7 @@ import { MyContext } from "src/types";
 import { COOKIE_NAME, FORGOT_PASSWORD_PREFIX } from "../constants";
 import { sendMail } from "../utils/sendMail";
 import { v4 } from "uuid";
+import { FieldError } from "../utils/FieldError";
 
 // @InputType()
 // class RegisterInput {
@@ -28,14 +29,6 @@ import { v4 } from "uuid";
 //   email: string;
 // }
 
-@ObjectType()
-class FieldError {
-	@Field()
-	field: string;
-
-	@Field()
-	message: string;
-}
 
 @ObjectType()
 class UserResponse {
