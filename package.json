@@ -7,7 +7,7 @@
     "watch": "tsc -w",
     "dev": "nodemon dist/index.js",
     "watchdev": "concurrently \"yarn watch\" \"yarn dev\"",
-    "start": "node dist/index.js",
+    "start": "NODE_ENV=production node dist/index.js",
     "start:redis": "sudo service redis-server start"
   },
   "keywords": [],
