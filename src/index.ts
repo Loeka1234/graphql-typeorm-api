@@ -16,6 +16,7 @@ import session from "express-session";
 import connectRedis from "connect-redis";
 import { authChecker } from "./middleware/authChecker";
 import cors from "cors";
+import { Reservation } from "./entities/Reservation";
 
 dotenv.config();
 
@@ -27,7 +28,7 @@ const main = async () => {
     synchronize: !__production__,
     logging: !__production__,
     migrations: [path.join(__dirname, "migrations")],
-    entities: [User, Event],
+    entities: [User, Event, Reservation],
     database: "api",
   });
 

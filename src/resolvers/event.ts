@@ -13,6 +13,7 @@ import { Event } from "../entities/Event";
 import { MyContext } from "src/types";
 import { User } from "../entities/User";
 import { FieldError } from "../utils/FieldError";
+import { Reservation } from "../entities/Reservation";
 
 @ObjectType()
 class EventResponse {
@@ -23,6 +24,15 @@ class EventResponse {
 	event?: Event;
 }
 
+@ObjectType()
+class ReserveResponse {
+	@Field(() => String, { nullable: true })
+	error?: string;
+
+	@Field(() => Boolean)
+	success: boolean;
+}
+
 @Resolver()
 export class EventResolver {
 	@Mutation(() => EventResponse)
@@ -31,13 +41,15 @@ export class EventResolver {
 		@Arg("title") title: string,
 		@Arg("description", () => String, { nullable: true })
 		description: string,
+		@Arg("maxReservations", () => Int, { nullable: true })
+		maxReservations: number | undefined,
 		@Ctx() { req }: MyContext
 	): Promise<EventResponse> {
 		if (!title || title.length < 5)
 			return {
 				error: {
 					field: "title",
-					message: "title should have a minimul length of 4",
+					message: "title should have a minimul length of 5",
 				},
 			};
 
@@ -45,6 +57,7 @@ export class EventResolver {
 			title,
 			description,
 			creatorId: req.session.userId,
+			maxReservations: maxReservations,
 		}).save();
 
 		return {
@@ -59,6 +72,7 @@ export class EventResolver {
 
 		return Event.find({
 			where: { creatorId: user?.id },
+			relations: ["reservations"],
 		});
 	}
 
@@ -71,20 +85,27 @@ export class EventResolver {
 	@Authorized()
 	async updateEvent(
 		@Arg("id", () => Int) id: number,
-		@Arg("title", () => String, { nullable: true }) title: string,
+		@Arg("title", () => String, { nullable: true }) title: string | null,
 		@Arg("description", () => String, { nullable: true })
-		description: string,
+		description: string | null,
+		@Arg("maxReservations", () => Int, { nullable: true })
+		maxReservations: number | null,
 		@Ctx() { req }: MyContext
 	) {
 		const event = await Event.findOne({
 			id,
 		});
-		if (!event || (!title && !description)) return null;
+		if (
+			!event ||
+			(!title && !description && typeof maxReservations === "undefined")
+		)
+			return null;
 
 		if (req.session.userId !== event.creatorId) return null;
 
 		if (title) event.title = title;
 		if (description) event.description = description;
+		if (maxReservations) event.maxReservations = maxReservations;
 
 		const updatedEvent = await event.save();
 		return updatedEvent;
@@ -92,14 +113,50 @@ export class EventResolver {
 
 	@Mutation(() => Boolean)
 	@Authorized()
-	async deleteEvent(@Arg("id", () => Int) id: number, @Ctx() { req }: MyContext) {
+	async deleteEvent(
+		@Arg("id", () => Int) id: number,
+		@Ctx() { req }: MyContext
+	) {
 		const event = await Event.findOne({
-			id,
+			where: { id }
 		});
 
 		if (!event || req.session.userId !== event.creatorId) return false;
 
+		await Reservation.delete({ event });
 		await event.remove();
 		return true;
+	}
+
+	@Mutation(() => ReserveResponse)
+	async reserve(
+		@Arg("email") email: string,
+		@Arg("eventId", () => Int) eventId: number
+	): Promise<ReserveResponse> {
+		// TODO: validate email
+		const event = await Event.findOne({ id: eventId });
+		if (!event)
+			return {
+				error: "event does not exist",
+				success: false,
+			};
+		if (event.maxReservations === event.amountReservations)
+			return {
+				error:
+					"this event has reached the maximum amount of reservations",
+				success: false,
+			};
+
+		event.amountReservations += 1;
+
+		await event.save();
+		await Reservation.create({
+			email,
+			eventId,
+		}).save();
+
+		return {
+			success: true,
+		};
 	}
 }
