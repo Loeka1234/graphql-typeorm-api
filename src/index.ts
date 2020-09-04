@@ -17,6 +17,7 @@ import connectRedis from "connect-redis";
 import { authChecker } from "./middleware/authChecker";
 import cors from "cors";
 import { Reservation } from "./entities/Reservation";
+import { initializeHandlebars } from "./mail";
 
 dotenv.config();
 
@@ -40,7 +41,7 @@ const main = async () => {
   app.use(
     cors({
       credentials: true,
-      origin: "http://localhost:3000",
+      origin: process.env.CORS,
     })
   );
 
@@ -77,6 +78,8 @@ const main = async () => {
   app.get("/", (_, res) => {
     res.send("Express server working.");
   });
+
+  await initializeHandlebars();
 
   const PORT = 4000;
 

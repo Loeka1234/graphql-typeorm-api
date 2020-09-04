@@ -13,7 +13,7 @@ import { User } from "../entities/User";
 import argon2 from "argon2";
 import { MyContext } from "src/types";
 import { COOKIE_NAME, FORGOT_PASSWORD_PREFIX } from "../constants";
-import { sendMail } from "../utils/sendMail";
+import { sendMailWithTemplate } from "../mail";
 import { v4 } from "uuid";
 import { FieldError } from "../utils/FieldError";
 
@@ -28,7 +28,6 @@ import { FieldError } from "../utils/FieldError";
 //   @Field()
 //   email: string;
 // }
-
 
 @ObjectType()
 class UserResponse {
@@ -193,9 +192,15 @@ export class UserResolver {
 			1000 * 60 * 60 * 24
 		);
 
-		await sendMail(
-			email,
-			`<a href="http://localhost:3000/change-password?token=${token}">reset password</a>`
+		await sendMailWithTemplate(
+			{
+				to: email,
+				subject: "Reset password",
+			},
+			"forgotPassword",
+			{
+				link: `${process.env.CORS}/change-password?token=${token}`,
+			}
 		);
 
 		return true;

@@ -14,6 +14,8 @@ import { MyContext } from "src/types";
 import { User } from "../entities/User";
 import { FieldError } from "../utils/FieldError";
 import { Reservation } from "../entities/Reservation";
+import { isEmail } from "class-validator";
+import { sendMailWithTemplate } from "../mail";
 
 @ObjectType()
 class EventResponse {
@@ -28,6 +30,9 @@ class EventResponse {
 class ReserveResponse {
 	@Field(() => String, { nullable: true })
 	error?: string;
+
+	@Field(() => FieldError, { nullable: true })
+	fieldError?: FieldError;
 
 	@Field(() => Boolean)
 	success: boolean;
@@ -118,7 +123,7 @@ export class EventResolver {
 		@Ctx() { req }: MyContext
 	) {
 		const event = await Event.findOne({
-			where: { id }
+			where: { id },
 		});
 
 		if (!event || req.session.userId !== event.creatorId) return false;
@@ -133,7 +138,6 @@ export class EventResolver {
 		@Arg("email") email: string,
 		@Arg("eventId", () => Int) eventId: number
 	): Promise<ReserveResponse> {
-		// TODO: validate email
 		const event = await Event.findOne({ id: eventId });
 		if (!event)
 			return {
@@ -147,6 +151,15 @@ export class EventResolver {
 				success: false,
 			};
 
+		if (!isEmail(email))
+			return {
+				fieldError: {
+					field: "email",
+					message: "please enter a valid email",
+				},
+				success: false,
+			};
+
 		event.amountReservations += 1;
 
 		await event.save();
@@ -154,6 +167,15 @@ export class EventResolver {
 			email,
 			eventId,
 		}).save();
+
+		sendMailWithTemplate(
+			{ to: email, subject: "Reserved event" },
+			"reserveEvent",
+			{
+				event: event.title,
+				eventLink: `${process.env.CORS}/events/${event.id}`,
+			}
+		);
 
 		return {
 			success: true,
