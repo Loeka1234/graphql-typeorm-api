@@ -6,7 +6,7 @@ import {
 	ManyToOne,
 	OneToMany,
 } from "typeorm";
-import { ObjectType, Field, Int } from "type-graphql";
+import { ObjectType, Field, Int, Float } from "type-graphql";
 import { User } from "./User";
 import { Reservation } from "./Reservation";
 
@@ -36,6 +36,14 @@ export class Event extends BaseEntity {
 	@Field(() => [Reservation])
 	@OneToMany(() => Reservation, reservation => reservation.event)
 	reservations: Reservation[];
+
+	@Field(() => Float)
+	@Column("timestamp with time zone")
+	startDate: Date;
+
+	@Field(() => Float, { nullable: true })
+	@Column("timestamp with time zone", { nullable: true })
+	endDate: Date |null;
 
 	@Field()
 	@Column()

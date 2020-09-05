@@ -11,11 +11,13 @@ import {
 } from "type-graphql";
 import { User } from "../entities/User";
 import argon2 from "argon2";
-import { MyContext } from "src/types";
+import { MyContext } from "../types";
 import { COOKIE_NAME, FORGOT_PASSWORD_PREFIX } from "../constants";
 import { sendMailWithTemplate } from "../mail";
 import { v4 } from "uuid";
 import { FieldError } from "../utils/FieldError";
+import { isEmail } from "class-validator";
+import { isValidPassword } from "../validation/isValidPassword";
 
 // @InputType()
 // class RegisterInput {
@@ -71,12 +73,20 @@ export class UserResolver {
 				},
 			};
 
-		if (!password.match(/^(?=.*[0-9]+.*)(?=.*[a-zA-Z]+.*)[0-9a-zA-Z]{6,}$/))
+		if (!isValidPassword(password))
 			return {
 				error: {
 					field: "password",
 					message:
 						"must contain at least one letter, at least one number, and be longer than six charaters",
+				},
+			};
+
+		if (!isEmail(email))
+			return {
+				error: {
+					field: "email",
+					message: "please provide a valid email",
 				},
 			};
 

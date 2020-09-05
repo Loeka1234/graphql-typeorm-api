@@ -21,6 +21,10 @@ export class Reservation extends BaseEntity {
 	@Column()
 	email: string;
 
+	@Field()
+	@Column()
+	name: string;
+
 	@Field(() => Int)
 	@Column()
 	eventId: number;

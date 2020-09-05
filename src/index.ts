@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import dotenv from "dotenv-safe";
-import { createConnection } from "typeorm";
+import { createConnection, getConnectionOptions } from "typeorm";
 import { __production__, COOKIE_NAME } from "./constants";
 import path from "path";
 import { User } from "./entities/User";
@@ -18,74 +18,77 @@ import { authChecker } from "./middleware/authChecker";
 import cors from "cors";
 import { Reservation } from "./entities/Reservation";
 import { initializeHandlebars } from "./mail";
+import { ReservationResolver } from "./resolvers/reservation";
 
 dotenv.config();
 
 const main = async () => {
-  await createConnection({
-    type: "postgres",
-    username: "postgres",
-    password: "postgres",
-    synchronize: !__production__,
-    logging: !__production__,
-    migrations: [path.join(__dirname, "migrations")],
-    entities: [User, Event, Reservation],
-    database: "api",
-  });
+	const connectionOptions = await getConnectionOptions();
 
-  const app = express();
+	Object.assign(connectionOptions, {
+		synchronize: !__production__,
+		logging: !__production__,
+		migrations: [path.join(__dirname, "migrations")],
+		entities: [User, Event, Reservation],
+	});
 
-  const RedisStore = connectRedis(session);
-  const redisClient = redis.createClient();
+	const conn = await createConnection(connectionOptions);
+	await conn.runMigrations();
 
-  app.use(
-    cors({
-      credentials: true,
-      origin: process.env.CORS,
-    })
-  );
+	const app = express();
 
-  app.use(
-    session({
-      name: COOKIE_NAME,
-      store: new RedisStore({
-        client: redisClient,
-        disableTouch: true,
-      }),
-      cookie: {
-        maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
-        httpOnly: true,
-        secure: __production__,
-        sameSite: "none",
-      },
-      secret: "adjaopdjapdjoajpjadppojadjajdop",
-      saveUninitialized: false,
-      resave: false,
-    })
-  );
+	const RedisStore = connectRedis(session);
+	const redisClient = redis.createClient();
 
-  const apolloServer = new ApolloServer({
-    schema: await buildSchema({
-      resolvers: [UserResolver, EventResolver],
-      validate: false,
-      authChecker: authChecker,
-    }),
-    context: ({ req, res }) => ({ req, res, redis: redisClient } as MyContext),
-  });
+	app.use(
+		cors({
+			credentials: true,
+			origin: process.env.CORS,
+		})
+	);
 
-  apolloServer.applyMiddleware({ app, cors: false });
+	app.use(
+		session({
+			name: COOKIE_NAME,
+			store: new RedisStore({
+				client: redisClient,
+				disableTouch: true,
+			}),
+			cookie: {
+				maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
+				httpOnly: true,
+				secure: __production__,
+				sameSite:  __production__ ? "none" : "lax",
+			},
+			secret: "adjaopdjapdjoajpjadppojadjajdop",
+			saveUninitialized: false,
+			resave: false,
+		})
+	);
 
-  app.get("/", (_, res) => {
-    res.send("Express server working.");
-  });
+	const apolloServer = new ApolloServer({
+		schema: await buildSchema({
+			resolvers: [UserResolver, EventResolver, ReservationResolver],
+			validate: false,
+			authChecker: authChecker,
+		}),
+		context: ({ req, res }) =>
+			({ req, res, redis: redisClient } as MyContext),
+	});
 
-  await initializeHandlebars();
+	apolloServer.applyMiddleware({ app, cors: false });
 
-  const PORT = 4000;
+	app.get("/", (_, res) => {
+		res.send("Express server working.");
+	});
 
-  app.listen(PORT, () =>
-    console.log(`Express server started on localhost:${PORT}`)
-  );
+	await initializeHandlebars();
+
+	const PORT = 4000;
+
+	app.listen(PORT, () =>
+		console.log(`Express server started on localhost:${PORT}`)
+	);
 };
 
 main();

@@ -8,14 +8,13 @@ import {
 	Authorized,
 	ObjectType,
 	Field,
+	Float,
 } from "type-graphql";
 import { Event } from "../entities/Event";
-import { MyContext } from "src/types";
+import { MyContext } from "../types";
 import { User } from "../entities/User";
 import { FieldError } from "../utils/FieldError";
 import { Reservation } from "../entities/Reservation";
-import { isEmail } from "class-validator";
-import { sendMailWithTemplate } from "../mail";
 
 @ObjectType()
 class EventResponse {
@@ -24,18 +23,6 @@ class EventResponse {
 
 	@Field(() => Event, { nullable: true })
 	event?: Event;
-}
-
-@ObjectType()
-class ReserveResponse {
-	@Field(() => String, { nullable: true })
-	error?: string;
-
-	@Field(() => FieldError, { nullable: true })
-	fieldError?: FieldError;
-
-	@Field(() => Boolean)
-	success: boolean;
 }
 
 @Resolver()
@@ -48,8 +35,43 @@ export class EventResolver {
 		description: string,
 		@Arg("maxReservations", () => Int, { nullable: true })
 		maxReservations: number | undefined,
+		@Arg("startDate", () => Float) startDate: number,
+		@Arg("endDate", () => Float, { nullable: true })
+		endDate: number | null,
 		@Ctx() { req }: MyContext
 	): Promise<EventResponse> {
+		if (Number.isNaN(startDate))
+			return {
+				error: {
+					field: "startDate",
+					message: "please enter a valid date",
+				},
+			};
+
+		if (endDate && Number.isNaN(endDate))
+			return {
+				error: {
+					field: "endDate",
+					message: "please enter a valid date",
+				},
+			};
+
+		if (startDate < Date.now())
+			return {
+				error: {
+					field: "startDate",
+					message: "choose another date that has not passed yet",
+				},
+			};
+
+		if (endDate && startDate >= endDate)
+			return {
+				error: {
+					field: "endDate",
+					message: "end date should be later than the startdate",
+				},
+			};
+
 		if (!title || title.length < 5)
 			return {
 				error: {
@@ -63,6 +85,8 @@ export class EventResolver {
 			description,
 			creatorId: req.session.userId,
 			maxReservations: maxReservations,
+			startDate: new Date(startDate),
+			endDate: endDate ? new Date(endDate) : null!,
 		}).save();
 
 		return {
@@ -82,8 +106,10 @@ export class EventResolver {
 	}
 
 	@Query(() => Event, { nullable: true })
-	eventById(@Arg("id", () => Int) id: number): Promise<Event | undefined> {
-		return Event.findOne({ where: { id }, relations: ["creator"] });
+	async eventById(@Arg("id", () => Int) id: number): Promise<Event | undefined> {
+		const event = await Event.findOne({ where: { id }, relations: ["creator"] });
+		console.log(event);
+		return event;
 	}
 
 	@Mutation(() => Event, { nullable: true })
@@ -95,6 +121,11 @@ export class EventResolver {
 		description: string | null,
 		@Arg("maxReservations", () => Int, { nullable: true })
 		maxReservations: number | null,
+		@Arg("startDate", () => Float, { nullable: true })
+		startDate: number | null,
+		@Arg("useEndDate", () => Boolean, { nullable: true })
+		useEndDate: boolean,
+		@Arg("endDate", () => Float, { nullable: true }) endDate: number | null,
 		@Ctx() { req }: MyContext
 	) {
 		const event = await Event.findOne({
@@ -110,7 +141,10 @@ export class EventResolver {
 
 		if (title) event.title = title;
 		if (description) event.description = description;
-		if (maxReservations) event.maxReservations = maxReservations;
+		event.maxReservations = maxReservations;
+		if (startDate) event.startDate = new Date(startDate);
+		if (useEndDate && endDate) event.endDate = new Date(endDate);
+		else if (!useEndDate) event.endDate = null;
 
 		const updatedEvent = await event.save();
 		return updatedEvent;
@@ -131,54 +165,5 @@ export class EventResolver {
 		await Reservation.delete({ event });
 		await event.remove();
 		return true;
-	}
-
-	@Mutation(() => ReserveResponse)
-	async reserve(
-		@Arg("email") email: string,
-		@Arg("eventId", () => Int) eventId: number
-	): Promise<ReserveResponse> {
-		const event = await Event.findOne({ id: eventId });
-		if (!event)
-			return {
-				error: "event does not exist",
-				success: false,
-			};
-		if (event.maxReservations === event.amountReservations)
-			return {
-				error:
-					"this event has reached the maximum amount of reservations",
-				success: false,
-			};
-
-		if (!isEmail(email))
-			return {
-				fieldError: {
-					field: "email",
-					message: "please enter a valid email",
-				},
-				success: false,
-			};
-
-		event.amountReservations += 1;
-
-		await event.save();
-		await Reservation.create({
-			email,
-			eventId,
-		}).save();
-
-		sendMailWithTemplate(
-			{ to: email, subject: "Reserved event" },
-			"reserveEvent",
-			{
-				event: event.title,
-				eventLink: `${process.env.CORS}/events/${event.id}`,
-			}
-		);
-
-		return {
-			success: true,
-		};
 	}
 }
