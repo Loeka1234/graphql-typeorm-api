@@ -8,7 +8,7 @@ import {
 	Column,
 } from "typeorm";
 import { Event } from "./Event";
-import { Field, ObjectType, Int } from "type-graphql";
+import { Field, ObjectType, Int, Float } from "type-graphql";
 
 @ObjectType()
 @Entity()
@@ -32,11 +32,11 @@ export class Reservation extends BaseEntity {
 	@ManyToOne(() => Event, event => event.reservations)
 	event: Event;
 
-	@Field(() => String)
+	@Field(() => Float)
 	@CreateDateColumn()
 	createdAt: Date;
 
-	@Field(() => String)
+	@Field(() => Float)
 	@UpdateDateColumn()
 	updatedAt: Date;
 }

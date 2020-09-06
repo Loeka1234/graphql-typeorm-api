@@ -1,9 +1,22 @@
-import { Resolver, Mutation, Arg, Int, ObjectType, Field } from "type-graphql";
+import {
+	Resolver,
+	Mutation,
+	Arg,
+	Int,
+	ObjectType,
+	Field,
+	Query,
+	Ctx,
+	Authorized,
+	Float,
+} from "type-graphql";
 import { isEmail } from "class-validator";
 import { Reservation } from "../entities/Reservation";
 import { sendMailWithTemplate } from "../mail";
 import { FieldError } from "../utils/FieldError";
 import { Event } from "../entities/Event";
+import { LessThan, getConnection } from "typeorm";
+import { MyContext } from "../types";
 
 @ObjectType()
 class ReserveResponse {
@@ -15,6 +28,15 @@ class ReserveResponse {
 
 	@Field(() => Boolean)
 	success: boolean;
+}
+
+@ObjectType()
+class PaginatedReservationsResponse {
+	@Field(() => [Reservation])
+	reservations: Reservation[];
+
+	@Field(() => Boolean)
+	hasMore: boolean;
 }
 
 @Resolver()
@@ -84,6 +106,40 @@ export class ReservationResolver {
 
 		return {
 			success: true,
+		};
+	}
+
+	@Query(() => PaginatedReservationsResponse)
+	@Authorized()
+	async paginatedReservations(
+		@Arg("limit", () => Int) limit: number,
+		@Arg("cursor", () => Float, { nullable: true }) cursor: number | null,
+		@Ctx() { req }: MyContext
+	): Promise<PaginatedReservationsResponse> {
+		const realLimit = Math.min(50, limit);
+		const realLimitPlusOne = realLimit + 1;
+
+		let reserv = getConnection()
+			.getRepository(Reservation)
+			.createQueryBuilder("reservation")
+			.leftJoinAndSelect("reservation.event", "event")
+			.where('event."creatorId" = :id', {
+				id: req.session.userId,
+			})
+			.orderBy('reservation."createdAt"', "DESC")
+			.limit(realLimitPlusOne);
+
+		if (cursor) {
+			reserv = reserv.where('reservation."createdAt" < :cursor', {
+				cursor: new Date(cursor),
+			});
+		}
+
+		const reservations = await reserv.getMany();
+
+		return {
+			reservations: reservations.slice(0, realLimit),
+			hasMore: reservations.length === realLimitPlusOne,
 		};
 	}
 }
