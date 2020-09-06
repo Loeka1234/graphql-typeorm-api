@@ -15,12 +15,12 @@ jobs:
         uses: appleboy/ssh-action@master
         env:
           EMAIL: ${{ secrets.EMAIL }}
-          PASSWORD: ${{ secrets.PASSWORD }}
+          EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           CORS: ${{ secrets.CORS }}
         with:
           host: ${{ secrets.HOST }}
           USERNAME: ${{ secrets.USERNAME }}
           PORT: ${{ secrets.PORT }}
           PASSWORD: ${{ secrets.PASSWORD }}
-          envs: EMAIL,PASSWORD,CORS
-          script: cd ${{ secrets.PATH }} && git pull && npm i && npm i -D && npm run deploy
+          envs: EMAIL,EMAIL_PASSWORD,CORS
+          script: cd ${{ secrets.PATH }} && git pull && npm i && npm i -D && EMAIL=$EMAIL EMAIL_PASSWORD=EMAIL_PASSWORD CORS=CORS npm run deploy
