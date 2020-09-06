@@ -84,7 +84,7 @@ const main = async () => {
 
 	await initializeHandlebars();
 
-	const PORT = 4000;
+	const PORT = 4001;
 
 	app.listen(PORT, () =>
 		console.log(`Express server started on localhost:${PORT}`)

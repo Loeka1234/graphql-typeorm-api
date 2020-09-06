@@ -8,7 +8,7 @@
     "dev": "nodemon dist/index.js",
     "watchdev": "concurrently \"yarn watch\" \"yarn dev\"",
     "build": "tsc",
-    "start": "NODE_ENV=production forever start dist/index.js",
+    "start": "NODE_ENV=production forever --uid eventor start dist/index.js",
     "deploy": "npm run build && npm run start",
     "start:redis": "sudo service redis-server start"
   },
