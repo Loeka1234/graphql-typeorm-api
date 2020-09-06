@@ -48,7 +48,7 @@ const main = async () => {
 	const redisClient = redis.createClient();
 
 	if (__production__) app.set("trust proxy", 1);
-
+ 
 	app.use(
 		cors({
 			credentials: true,
