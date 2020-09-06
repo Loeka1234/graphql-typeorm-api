@@ -15,7 +15,7 @@ import { Reservation } from "../entities/Reservation";
 import { sendMailWithTemplate } from "../mail";
 import { FieldError } from "../utils/FieldError";
 import { Event } from "../entities/Event";
-import { LessThan, getConnection } from "typeorm";
+import { getConnection } from "typeorm";
 import { MyContext } from "../types";
 
 @ObjectType()
