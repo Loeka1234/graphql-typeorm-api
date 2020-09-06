@@ -13,9 +13,14 @@ jobs:
       - uses: actions/checkout@v2
       - name: Push to server
         uses: appleboy/ssh-action@master
+        env:
+          EMAIL: ${{ secrets.EMAIL }}
+          PASSWORD: ${{ secrets.PASSWORD }}
+          CORS: ${{ secrets.CORS }}
         with:
           host: ${{ secrets.HOST }}
           USERNAME: ${{ secrets.USERNAME }}
           PORT: ${{ secrets.PORT }}
           PASSWORD: ${{ secrets.PASSWORD }}
-          script: cd ${{ secrets.PATH }} && git pull
+          envs: EMAIL,PASSWORD,CORS
+          script: cd ${{ secrets.PATH }} && git pull && npm i && npm i -D && npm run deploy
