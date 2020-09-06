@@ -6,23 +6,12 @@ jobs:
   deploy:
     if: github.ref == 'refs/heads/master'
     # The type of runner that the job will run on
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-18.04
     
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - uses: actions/checkout@v2
       - name: Push to server
-        uses: appleboy/ssh-action@master
-        env:
-          HOST: ${{ secrets.HOST }}
-          USERNAME: ${{ secrets.USERNAME }}
-          PORT: ${{ secrets.PORT }}
-          KEY: ${{ secrets.SSHKEY }}
-        with:
-          source: "."
-          target: "/home/eventor-auto-deploy" 
-          
-      - name: Executing remote command
         uses: appleboy/ssh-action@master
         with:
           host: ${{ secrets.HOST }}
