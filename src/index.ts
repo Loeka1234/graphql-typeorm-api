@@ -22,6 +22,13 @@ import { ReservationResolver } from "./resolvers/reservation";
 
 dotenv.config();
 
+console.log(
+	"Env variables: ",
+	process.env.EMAIL,
+	process.env.EMAIL_PASSWORD,
+	process.env.CORS
+);
+
 const main = async () => {
 	const connectionOptions = await getConnectionOptions();
 
@@ -58,7 +65,7 @@ const main = async () => {
 				maxAge: 1000 * 60 * 60 * 24 * 365 * 10,
 				httpOnly: true,
 				secure: __production__,
-				sameSite:  __production__ ? "none" : "lax",
+				sameSite: __production__ ? "none" : "lax",
 			},
 			secret: "adjaopdjapdjoajpjadppojadjajdop",
 			saveUninitialized: false,
