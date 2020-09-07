@@ -17,6 +17,7 @@ jobs:
           EMAIL: ${{ secrets.EMAIL }}
           EMAIL_PASSWORD: ${{ secrets.EMAIL_PASSWORD }}
           CORS: ${{ secrets.CORS }}
+          COOKIE_SECRET: ${{ secrets.COOKIE_SECRET }}
         with:
           host: ${{ secrets.HOST }}
           USERNAME: ${{ secrets.USERNAME }}
