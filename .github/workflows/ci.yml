@@ -30,4 +30,5 @@ jobs:
             npm i
             npm i -D
             printf "EMAIL=$EMAIL\nEMAIL_PASSWORD=$EMAIL_PASSWORD\nCORS=$CORS\nCOOKIE_SECRET=$COOKIE_SECRET" > .env
+            forever stop event
             npm run deploy
