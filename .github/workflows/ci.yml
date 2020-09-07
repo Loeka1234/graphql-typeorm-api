@@ -29,4 +29,5 @@ jobs:
             git pull
             npm i
             npm i -D
-            EMAIL=$EMAIL EMAIL_PASSWORD=$EMAIL_PASSWORD CORS=$CORS COOKIE_SECRET=$COOKIE_SECRET npm run deploy
+            printf "EMAIL=$EMAIL\nEMAIL_PASSWORD=$EMAIL_PASSWORD\nCORS=$CORS\nCOOKIE_SECRET=$COOKIE_SECRET" > .env
+            npm run deploy
