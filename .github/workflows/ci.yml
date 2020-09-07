@@ -24,4 +24,9 @@ jobs:
           PORT: ${{ secrets.PORT }}
           PASSWORD: ${{ secrets.PASSWORD }}
           envs: EMAIL,EMAIL_PASSWORD,CORS,COOKIE_SECRET
-          script: cd ${{ secrets.PATH }} && git pull && npm i && npm i -D && EMAIL=$EMAIL EMAIL_PASSWORD=$EMAIL_PASSWORD CORS=$CORS COOKIE_SECRET=$COOKIE_SECRET npm run deploy
+          script: | 
+            cd ${{ secrets.PATH }}
+            git pull
+            npm i
+            npm i -D
+            EMAIL=$EMAIL EMAIL_PASSWORD=$EMAIL_PASSWORD CORS=$CORS COOKIE_SECRET=$COOKIE_SECRET npm run deploy
