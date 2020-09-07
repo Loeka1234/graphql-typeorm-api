@@ -7,7 +7,7 @@ jobs:
     if: github.ref == 'refs/heads/master'
     # The type of runner that the job will run on
     runs-on: ubuntu-18.04
-    
+
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       - uses: actions/checkout@v2
@@ -23,4 +23,4 @@ jobs:
           PORT: ${{ secrets.PORT }}
           PASSWORD: ${{ secrets.PASSWORD }}
           envs: EMAIL,EMAIL_PASSWORD,CORS
-          script: cd ${{ secrets.PATH }} && git pull && npm i && npm i -D && EMAIL=$EMAIL EMAIL_PASSWORD=$EMAIL_PASSWORD CORS=$CORS npm run deploy
+          script: cd ${{ secrets.PATH }} && git pull && npm i && npm i -D && EMAIL=$EMAIL EMAIL_PASSWORD=$EMAIL_PASSWORD CORS=$CORS COOKIE_SECRET=$COOKIE_SECRET npm run deploy

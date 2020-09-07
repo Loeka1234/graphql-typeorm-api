@@ -69,7 +69,7 @@ const main = async () => {
 				secure: __production__,
 				sameSite: __production__ ? "none" : "lax",
 			},
-			secret: "adjaopdjapdjoajpjadppojadjajdop",
+			secret: process.env.COOKIE_SECRET!,
 			saveUninitialized: false,
 			resave: false,
 		})
