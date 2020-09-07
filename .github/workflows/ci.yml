@@ -23,5 +23,11 @@ jobs:
           USERNAME: ${{ secrets.USERNAME }}
           PORT: ${{ secrets.PORT }}
           PASSWORD: ${{ secrets.PASSWORD }}
-          envs: EMAIL,EMAIL_PASSWORD,CORS
-          script: echo $COOKIE_SECRET && cd ${{ secrets.PATH }} && git pull && npm i && npm i -D && EMAIL=$EMAIL EMAIL_PASSWORD=$EMAIL_PASSWORD CORS=$CORS COOKIE_SECRET=$COOKIE_SECRET npm run deploy
+          envs: EMAIL,EMAIL_PASSWORD,CORS,COOKIE_SECRET
+          script: | 
+            cd ${{ secrets.PATH }}
+            git pull
+            npm i
+            npm i -D
+            printf "EMAIL=$EMAIL\nEMAIL_PASSWORD=$EMAIL_PASSWORD\nCORS=$CORS\nCOOKIE_SECRET=$COOKIE_SECRET" > .env
+            npm run deploy
